@@ -71,19 +71,18 @@ resource "google_secret_manager_secret_iam_binding" "storage_outputs_management_
   ]
 }
 
-resource "google_project_iam_binding" "bucket_listener_sign_blob_iam_binding" {
+resource "google_project_iam_member" "bucket_listener_sign_blob_iam_member" {
   for_each = local.storage_stacks
+
   project = var.projectID
   role    = "projects/${var.projectID}/roles/${local.custom_role_prefix}trend_micro_fss_bucket_listener_role"
+  member  = "serviceAccount:${google_service_account.bucket_listener_service_account[each.key].email}"
 
-  members = ["serviceAccount:${google_service_account.bucket_listener_service_account[each.key].email}"]
-
-  condition {
-    title  = "Bucket Listener Sign Blob IAM Binding"
-    description = "Trend Micro File Storage Security Bucket Listener Sign Blob IAM Binding"
-    expression  = "(resource.type == \"storage.googleapis.com/Bucket\" && resource.name.startsWith(\"projects/_/buckets/${each.value.scanningBucketName}\")) || (resource.type != \"storage.googleapis.com/Bucket\")"
-  }
+  depends_on = [
+    google_service_account.bucket_listener_service_account
+  ]
 }
+ 
 
 resource "google_service_account_iam_binding" "post_action_tag_service_account_iam" {
   for_each = local.storage_stacks
